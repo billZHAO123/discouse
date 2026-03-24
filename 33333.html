@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评论墙</title>
+    <style>
+        body { font: 14px/1.5 sans-serif; margin: 0; padding: 24px; background: #f0f0f0; }
+        .page { max-width: 600px; margin: 0 auto; }
+        .post-form { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .post-form textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; resize: vertical; }
+        .post-form button { margin-top: 10px; padding: 8px 20px; background: #333; color: #fff; border: none; cursor: pointer; }
+        .comment { background: #fff; padding: 16px; margin-bottom: 12px; border-radius: 6px; border-left: 4px solid #999; }
+        .comment-header { font-size: 12px; color: #666; margin-bottom: 8px; }
+        .comment-body { margin: 0; }
+        .load-more { text-align: center; padding: 16px; }
+        .load-more button { padding: 8px 24px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1>评论墙</h1>
+
+        <div class="post-form">
+            <textarea id="commentInput" placeholder="写下你的评论..."></textarea>
+            <button id="postBtn">发布</button>
+        </div>
+
+        <div id="commentList"></div>
+        <div class="load-more">
+            <button id="loadMore">加载更多</button>
+        </div>
+    </div>
+
+    <script>
+        // BUG 1: 隐式全局 - 未声明的变量
+        page = 1;
+        var comments = [];
+
+        function getComments(pageNum) {
+            var url = '/api/comments?page=' + pageNum;
+            fetch(url)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    comments = comments.concat(data.list);
+                    render();
+                });
+        }
+
+        // BUG 2: 未处理 fetch 失败，且 API 不存在时会报错
+        document.getElementById('postBtn').onclick = function() {
+            var text = document.getElementById('commentInput').value;
+            fetch('/api/post', {
+                method: 'POST',
+                body: JSON.stringify({ content: text })
+            }).then(function() {
+                comments.unshift({ id: Date.now(), content: text, time: new Date() });
+                render();
+            });
+        };
+
+        // BUG 3: innerHTML 直接插入用户内容，XSS
+        function render() {
+            var html = '';
+            for (var i = 0; i < comments.length; i++) {
+                html += '<div class="comment"><div class="comment-header">' + comments[i].time + '</div>';
+                html += '<p class="comment-body">' + comments[i].content + '</p></div>';
+            }
+            document.getElementById('commentList').innerHTML = html || '<p>暂无评论</p>';
+        }
+
+        // BUG 4: 每次点击 loadMore 都增加 page，但 getComments 用同步方式模拟
+        document.getElementById('loadMore').onclick = function() {
+            page = page + 1;
+            getComments(page);
+        };
+
+        // BUG 5: new Date() 无参时正确，但作为字符串拼接到 HTML 可能格式诡异
+        // 更严重：comments[i] 可能为 undefined（若 API 返回畸形数据）
+        // 已体现在 render 的 comments[i].content
+
+        // BUG 6: 使用 with 语句（已废弃，严格模式报错）
+        function getConfig() {
+            var cfg = { host: 'api.example.com', port: 443 };
+            with (cfg) {
+                return host + ':' + port;
+            }
+        }
+
+        // BUG 7: 递归无终止条件
+        function countDown(n) {
+            if (n > 0) return countDown(n - 1) + n;
+            return 0;
+        }
+
+        // BUG 8: 比较时未考虑 null/undefined
+        function findComment(id) {
+            for (var i = 0; i < comments.length; i++) {
+                if (comments[i].id == id) return comments[i];
+            }
+            return null;
+        }
+
+        // 初始化：模拟数据
+        comments = [
+            { id: 1, content: '第一条评论', time: '2024-01-01 12:00' },
+            { id: 2, content: '第二条', time: '2024-01-01 12:01' }
+        ];
+        render();
+    </script>
+</body>
+</html>
