@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="搜索与筛选示例 - 符合最佳实践">
+    <title>商品搜索</title>
+    <style>
+        :root {
+            --color-primary: #059669;
+            --color-text: #111827;
+            --color-muted: #6b7280;
+            --color-border: #d1d5db;
+            --color-bg: #f3f4f6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            color: var(--color-text);
+            background: var(--color-bg);
+            margin: 0;
+            padding: 20px;
+        }
+        main {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.25rem; }
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+        }
+        .search-box button {
+            padding: 10px 20px;
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .search-box button:hover { opacity: 0.9; }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .item-name { font-weight: 500; }
+        .item-price { color: var(--color-muted); font-size: 0.9rem; }
+        .empty { color: var(--color-muted); padding: 24px; text-align: center; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>商品搜索</h1>
+        <div class="search-box">
+            <input type="search" id="searchInput" placeholder="输入关键词" aria-label="搜索关键词" autocomplete="off">
+            <button type="button" id="searchBtn">搜索</button>
+        </div>
+        <div id="resultList" role="list" aria-label="搜索结果"></div>
+    </main>
+
+    <script>
+        (function() {
+            'use strict';
+
+            var items = [
+                { id: 1, name: '无线鼠标', price: 89 },
+                { id: 2, name: '机械键盘', price: 299 },
+                { id: 3, name: ' USB 扩展坞', price: 159 },
+                { id: 4, name: '显示器支架', price: 199 },
+                { id: 5, name: '笔记本支架', price: 129 }
+            ];
+
+            var searchInput = document.getElementById('searchInput');
+            var searchBtn = document.getElementById('searchBtn');
+            var resultList = document.getElementById('resultList');
+
+            function renderItems(list) {
+                if (!resultList) return;
+                resultList.innerHTML = '';
+                if (!list || list.length === 0) {
+                    var empty = document.createElement('div');
+                    empty.className = 'empty';
+                    empty.appendChild(document.createTextNode('暂无匹配结果'));
+                    resultList.appendChild(empty);
+                    return;
+                }
+                list.forEach(function(item) {
+                    if (!item || typeof item.name !== 'string') return;
+                    var div = document.createElement('div');
+                    div.className = 'item';
+                    div.setAttribute('role', 'listitem');
+                    var nameEl = document.createElement('span');
+                    nameEl.className = 'item-name';
+                    nameEl.appendChild(document.createTextNode(item.name));
+                    var priceEl = document.createElement('span');
+                    priceEl.className = 'item-price';
+                    priceEl.appendChild(document.createTextNode('¥' + Number(item.price).toFixed(2)));
+                    div.appendChild(nameEl);
+                    div.appendChild(priceEl);
+                    resultList.appendChild(div);
+                });
+            }
+
+            function doSearch() {
+                var keyword = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
+                var filtered = keyword === ''
+                    ? items.slice()
+                    : items.filter(function(item) {
+                        return item && item.name && item.name.toLowerCase().indexOf(keyword) !== -1;
+                    });
+                renderItems(filtered);
+            }
+
+            if (searchBtn) searchBtn.addEventListener('click', doSearch);
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') doSearch();
+                });
+            }
+
+            renderItems(items);
+        })();
+    </script>
+</body>
+</html>
