@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>代码审查测试页面 v2</title>
+</head>
+<body>
+    <h1>订单管理测试</h1>
+
+    <div>
+        <input type="text" id="orderId" placeholder="订单号">
+        <button id="btnQuery">查询</button>
+        <button id="btnExport">导出</button>
+    </div>
+
+    <table id="orderTable">
+        <thead><tr><th>订单号</th><th>金额</th><th>状态</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // BUG 1: parseInt 未指定进制，'08' 会被解析为 8 或 0（旧浏览器）
+        function parseOrderId(str) {
+            return parseInt(str);
+        }
+
+        // BUG 2: 闭包陷阱 - 循环中共享同一变量引用
+        var buttons = document.querySelectorAll('button');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].onclick = function() {
+                alert('点击了按钮 ' + i);
+            };
+        }
+
+        // BUG 3: 正则 ReDoS - 灾难性回溯
+        function validateInput(text) {
+            var re = /^(a+)+$/;
+            return re.test(text);
+        }
+
+        // BUG 4: document.write 在 DOM 加载后使用会覆盖整个文档
+        function appendLog(msg) {
+            document.write('<p>' + msg + '</p>');
+        }
+
+        // BUG 5: 模拟的“密码”硬编码
+        var apiKey = 'sk-1234567890abcdef';
+        function getApiUrl() {
+            return 'https://api.example.com?key=' + apiKey;
+        }
+
+        // BUG 6: 未清理的 setInterval 导致重复注册
+        document.getElementById('btnQuery').addEventListener('click', function() {
+            setInterval(function() {
+                document.getElementById('orderTable').style.backgroundColor = 'yellow';
+            }, 1000);
+        });
+
+        // BUG 7: 数组越界/ off-by-one 逻辑错误
+        var statuses = ['待支付', '已支付', '已发货', '已完成'];
+        function getStatus(index) {
+            return statuses[index];
+        }
+
+        // BUG 8: 未检查 DOM 元素是否存在
+        document.getElementById('btnExport').onclick = function() {
+            var tbody = document.getElementById('orderTable').getElementsByTagName('tbody')[0];
+            var rows = tbody.getElementsByTagName('tr');
+            for (var j = 0; j <= rows.length; j++) {
+                console.log(rows[j].innerText);
+            }
+        };
+
+        // BUG 9: 字符串拼接在循环中，性能差
+        function buildCsv(data) {
+            var result = '';
+            for (var k = 0; k < data.length; k++) {
+                result = result + data[k].id + ',' + data[k].amount + '\n';
+            }
+            return result;
+        }
+
+        // BUG 10: 原型污染
+        function mergeOptions(user, defaultOpt) {
+            for (var key in defaultOpt) {
+                user[key] = defaultOpt[key];
+            }
+            return user;
+        }
+
+        // BUG 11: 未处理的 Promise 拒绝
+        function fetchOrder(id) {
+            fetch('/api/orders/' + id)
+                .then(function(res) { return res.json(); })
+                .then(function(data) { console.log(data); });
+        }
+
+        // BUG 12: 浮点数精度
+        function calcTotal(items) {
+            var sum = 0.1 + 0.2;
+            return sum;
+        }
+    </script>
+</body>
+</html>
