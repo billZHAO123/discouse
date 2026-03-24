@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="干净的示例页面 - 符合最佳实践">
+    <title>示例页面</title>
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-text: #1f2937;
+            --color-border: #e5e7eb;
+            --color-bg: #f9fafb;
+            --radius: 8px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--color-text);
+            background: var(--color-bg);
+            margin: 0;
+            padding: 24px;
+            max-width: 720px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        h1 { font-size: 1.5rem; margin-top: 0; }
+        h2 { font-size: 1.125rem; margin-top: 0; }
+        button {
+            padding: 8px 16px;
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            width: 100%;
+        }
+        ul { margin: 0; padding-left: 20px; }
+        .error { color: #dc2626; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>示例页面</h1>
+    <p>本页面遵循安全与性能最佳实践，无已知 BUG。</p>
+
+    <div class="card">
+        <h2>添加列表项</h2>
+        <input type="text" id="userInput" placeholder="输入内容..." aria-label="列表项输入">
+        <button type="button" id="addBtn">添加到列表</button>
+        <p id="inputError" class="error" role="alert" aria-live="polite" hidden></p>
+        <ul id="itemList" aria-label="列表项"></ul>
+    </div>
+
+    <div class="card">
+        <h2>计数器</h2>
+        <p>当前值: <span id="counterValue" aria-live="polite">0</span></p>
+        <button type="button" id="incBtn">+1</button>
+        <button type="button" id="resetBtn">重置</button>
+    </div>
+
+    <div class="card">
+        <h2>数据展示</h2>
+        <button type="button" id="loadBtn">加载数据</button>
+        <div id="dataOutput" aria-live="polite"></div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // 转义 HTML，防止 XSS
+            function escapeHtml(str) {
+                if (typeof str !== 'string') return '';
+                var div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // 安全的创建文本节点
+            function createTextNode(text) {
+                return document.createTextNode(String(text));
+            }
+
+            // 列表添加
+            var itemList = document.getElementById('itemList');
+            var userInput = document.getElementById('userInput');
+            var addBtn = document.getElementById('addBtn');
+            var inputError = document.getElementById('inputError');
+
+            function addItem() {
+                inputError.hidden = true;
+                var value = (userInput.value || '').trim();
+                if (!value) {
+                    inputError.textContent = '请输入内容';
+                    inputError.hidden = false;
+                    return;
+                }
+                var li = document.createElement('li');
+                li.appendChild(createTextNode(value));
+                itemList.appendChild(li);
+                userInput.value = '';
+                userInput.focus();
+            }
+
+            if (addBtn && userInput) {
+                addBtn.addEventListener('click', addItem);
+                userInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') addItem();
+                });
+            }
+
+            // 计数器
+            var counterValue = 0;
+            var counterEl = document.getElementById('counterValue');
+            var incBtn = document.getElementById('incBtn');
+            var resetBtn = document.getElementById('resetBtn');
+
+            function updateCounter() {
+                if (counterEl) counterEl.textContent = String(counterValue);
+            }
+
+            if (incBtn) {
+                incBtn.addEventListener('click', function() {
+                    counterValue += 1;
+                    updateCounter();
+                });
+            }
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    counterValue = 0;
+                    updateCounter();
+                });
+            }
+
+            // 数据加载
+            var mockData = [
+                { id: 1, name: '项目A' },
+                { id: 2, name: '项目B' },
+                { id: 3, name: '项目C' },
+                { id: 4, name: '项目D' }
+            ];
+
+            var loadBtn = document.getElementById('loadBtn');
+            var dataOutput = document.getElementById('dataOutput');
+
+            if (loadBtn && dataOutput) {
+                loadBtn.addEventListener('click', function() {
+                    dataOutput.innerHTML = '';
+                    mockData.forEach(function(item) {
+                        if (item && typeof item.name === 'string') {
+                            var p = document.createElement('p');
+                            p.appendChild(createTextNode(item.name));
+                            dataOutput.appendChild(p);
+                        }
+                    });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
