@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典 BUG 演示（可运行）</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 560px; margin: 0 auto; }
+        .box { border: 1px solid #ccc; padding: 16px; margin: 12px 0; border-radius: 8px; }
+        input, button { padding: 8px; margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <h1>经典 BUG 演示</h1>
+    <p>打开即用，故意埋入常见错误，供代码审查练习。</p>
+
+    <div class="box">
+        <h2>欢迎语（XSS）</h2>
+        <input type="text" id="nameInput" placeholder="输入昵称">
+        <button type="button" id="greetBtn">生成欢迎</button>
+        <div id="greetOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>计算器（== 与类型）</h2>
+        <input type="text" id="a" value="5">
+        <input type="text" id="b" value="3">
+        <button type="button" id="sumBtn">相加</button>
+        <div id="sumOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>脚本执行</h2>
+        <input type="text" id="expr" placeholder="输入表达式">
+        <button type="button" id="evalBtn">计算</button>
+    </div>
+
+    <div class="box">
+        <h2>列表数据</h2>
+        <button type="button" id="loadBtn">加载列表</button>
+        <ul id="listOut"></ul>
+    </div>
+
+    <script>
+        /* BUG 1: innerHTML + 用户输入 → XSS */
+        document.getElementById('greetBtn').onclick = function() {
+            var n = document.getElementById('nameInput').value;
+            document.getElementById('greetOut').innerHTML = '<p>你好，' + n + '！</p>';
+        };
+
+        /* BUG 2: == 导致字符串拼接而非数字相加 */
+        document.getElementById('sumBtn').onclick = function() {
+            var a = document.getElementById('a').value;
+            var b = document.getElementById('b').value;
+            if (a == b) {
+                document.getElementById('sumOut').textContent = '相等，不计算';
+            } else {
+                document.getElementById('sumOut').textContent = '结果: ' + (a + b);
+            }
+        };
+
+        /* BUG 3: eval 执行任意字符串 */
+        document.getElementById('evalBtn').onclick = function() {
+            var e = document.getElementById('expr').value;
+            alert('结果: ' + eval(e));
+        };
+
+        /* BUG 4: 数组含 null，直接访问属性 */
+        var rows = [{ label: '项 A' }, null, { label: '项 C' }];
+        document.getElementById('loadBtn').onclick = function() {
+            var ul = document.getElementById('listOut');
+            ul.innerHTML = '';
+            for (var i = 0; i < rows.length; i++) {
+                var li = document.createElement('li');
+                li.textContent = rows[i].label;
+                ul.appendChild(li);
+            }
+        };
+
+        /* BUG 5: 未捕获的全局错误处理 */
+        window.onerror = function() { return true; };
+    </script>
+</body>
+</html>
