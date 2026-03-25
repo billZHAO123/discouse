@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典 BUG 演示</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 560px; margin: 0 auto; }
+        .box { border: 1px solid #ccc; padding: 16px; margin: 12px 0; border-radius: 8px; }
+        input, button { padding: 8px; margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <h1>经典 BUG 演示</h1>
+    <p>打开即用，故意埋入常见错误，供代码审查练习使用。</p>
+
+    <div class="box">
+        <h2>欢迎语（XSS）</h2>
+        <input type="text" id="nameInput" placeholder="输入昵称">
+        <button type="button" id="greetBtn">生成欢迎</button>
+        <div id="greetOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>计算器（== 与类型）</h2>
+        <input type="text" id="a" value="5">
+        <input type="text" id="b" value="3">
+        <button type="button" id="sumBtn">相加</button>
+        <div id="sumOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>安全表达式计算</h2>
+        <input type="text" id="expr" placeholder="仅允许数字和+-*/()">
+        <button type="button" id="evalBtn">计算</button>
+    </div>
+
+    <div class="box">
+        <h2>列表数据</h2>
+        <button type="button" id="loadBtn">加载列表</button>
+        <ul id="listOut"></ul>
+    </div>
+
+    <script>
+        /* 修复XSS：用户输入纯文本使用textContent，避免脚本注入 */
+        document.getElementById('greetBtn').onclick = function() {
+            const n = document.getElementById('nameInput').value;
+            const greetOut = document.getElementById('greetOut');
+            const p = document.createElement('p');
+            p.textContent = `你好，${n}！`;
+            greetOut.innerHTML = '';
+            greetOut.appendChild(p);
+        };
+
+        /* 修复类型问题：输入转为数值，使用严格相等 */
+        document.getElementById('sumBtn').onclick = function() {
+            const a = Number(document.getElementById('a').value);
+            const b = Number(document.getElementById('b').value);
+            if (a === b) {
+                document.getElementById('sumOut').textContent = '相等，不计算';
+            } else {
+                document.getElementById('sumOut').textContent = `结果: ${a + b}`;
+            }
+        };
+
+        /* 修复任意代码执行：使用白名单严格校验输入，禁止直接eval用户输入 */
+        document.getElementById('evalBtn').onclick = function() {
+            const e = document.getElementById('expr').value;
+            // 白名单仅允许数字、+-*/运算符和括号
+            const validPattern = /^[\d+\-*/().\s]+$/;
+            if (!validPattern.test(e)) {
+                alert('输入不合法！仅允许输入数字和 +-*/ 运算符');
+                return;
+            }
+            try {
+                // 校验后再计算，限制可执行范围
+                const result = new Function(`return ${e}`)();
+                alert(`结果: ${result}`);
+            } catch (err) {
+                alert(`计算出错：${err.message}`);
+            }
+        };
+
+        /* 修复空值访问和重排问题：添加非空判断，使用DocumentFragment减少重排 */
+        const rows = [{ label: '项 A' }, null, { label: '项 C' }];
+        document.getElementById('loadBtn').onclick = function() {
+            const ul = document.getElementById('listOut');
+            ul.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row) continue;
+                const li = document.createElement('li');
+                li.textContent = row.label;
+                fragment.appendChild(li);
+            }
+            ul.appendChild(fragment);
+        };
+
+        /* 移除全局吞错误，保留错误上报能力方便调试 */
+    </script>
+</body>
+</html>
