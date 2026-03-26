@@ -48,6 +48,33 @@
         <div id="remindBanner" style="margin-top:8px;min-height:24px;"></div>
     </div>
 
+    <div class="box">
+        <h2>排序（默认 sort）</h2>
+        <button type="button" id="sortBtn">排序数字</button>
+        <div id="sortOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>分享链接（未编码）</h2>
+        <input type="text" id="cityInput" placeholder="城市，可含 & 或 =">
+        <button type="button" id="linkBtn">生成链接</button>
+        <div id="linkOut" style="word-break:break-all;font-size:12px;"></div>
+    </div>
+
+    <div class="box">
+        <h2>快捷操作（闭包）</h2>
+        <button type="button" class="quickOp">操作 0</button>
+        <button type="button" class="quickOp">操作 1</button>
+        <button type="button" class="quickOp">操作 2</button>
+        <div id="quickOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>远程校验（Promise）</h2>
+        <button type="button" id="fetchBtn">请求校验</button>
+        <div id="fetchOut"></div>
+    </div>
+
     <script>
         /* BUG 1: innerHTML + 用户输入 → XSS */
         document.getElementById('greetBtn').onclick = function() {
@@ -84,16 +111,47 @@
             }
         };
 
-        /* BUG 5: 未捕获的全局错误处理 */
+        /* BUG 5: 全局 onerror 吞掉错误，调试困难 */
         window.onerror = function() { return true; };
 
-        /* BUG 6: 每次点击都 new setInterval，从不 clearInterval → 多个定时器叠加 */
-        /* BUG 7: 提醒文案拼接进 innerHTML → 仍可 XSS */
+        /* BUG 6: setInterval 未 clear，多次叠加；BUG 7: innerHTML + 用户输入 */
         document.getElementById('startRemind').onclick = function() {
             var t = document.getElementById('remindText').value;
             setInterval(function() {
                 document.getElementById('remindBanner').innerHTML = '<strong>提醒：</strong>' + t;
             }, 3000);
+        };
+
+        /* BUG 8: Array.sort 默认按字符串排，[1,10,2] 顺序错误 */
+        var nums = [1, 10, 2, 20, 3];
+        document.getElementById('sortBtn').onclick = function() {
+            var copy = nums.slice();
+            copy.sort();
+            document.getElementById('sortOut').textContent = copy.join(', ');
+        };
+
+        /* BUG 9: URL 查询参数未 encodeURIComponent，& 会破坏参数 */
+        document.getElementById('linkBtn').onclick = function() {
+            var city = document.getElementById('cityInput').value;
+            document.getElementById('linkOut').textContent =
+                'https://api.example.com/register?city=' + city + '&source=demo';
+        };
+
+        /* BUG 10: for + var，点击时 i 已是最终值，三个按钮行为一致 */
+        var quickBtns = document.getElementsByClassName('quickOp');
+        for (var i = 0; i < quickBtns.length; i++) {
+            quickBtns[i].onclick = function() {
+                document.getElementById('quickOut').textContent = '你点击了第 ' + i + ' 个操作';
+            };
+        }
+
+        /* BUG 11: fetch 无 catch，失败时未处理且控制台可能报未处理拒绝 */
+        document.getElementById('fetchBtn').onclick = function() {
+            fetch('https://invalid-host-that-will-fail-xyz.example/no.json')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.getElementById('fetchOut').textContent = JSON.stringify(data);
+                });
         };
     </script>
 </body>
