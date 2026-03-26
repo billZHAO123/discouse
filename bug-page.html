@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预约登记 - 代码审查</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
+        fieldset { margin: 16px 0; border: 1px solid #ccc; }
+        label { display: inline-block; margin: 8px 0; }
+        input, select, button { margin-right: 8px; }
+        #shareLink { word-break: break-all; color: #06c; }
+    </style>
+</head>
+<body>
+    <h1>参会预约</h1>
+    <p>故意包含多种典型问题，单文件即可打开。</p>
+
+    <fieldset>
+        <legend>基本信息</legend>
+        <label>姓名 <input type="text" id="fullName"></label><br>
+        <label>城市 <input type="text" id="city"></label><br>
+        <label><input type="checkbox" id="agree" value="yes"> 我已阅读须知</label><br>
+        <button type="button" id="btnSubmit">提交预约</button>
+        <p id="msg"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>生成分享链接</legend>
+        <button type="button" id="btnShare">复制预约链接</button>
+        <p id="shareLink"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>已选时段（用 for-in 遍历演示）</legend>
+        <div id="slotsOut"></div>
+        <button type="button" id="btnSlots">列出时段</button>
+    </fieldset>
+
+    <script>
+        // 提前缓存DOM元素，避免重复查询
+        const fullNameEl = document.getElementById('fullName');
+        const cityEl = document.getElementById('city');
+        const agreeEl = document.getElementById('agree');
+        const msgEl = document.getElementById('msg');
+        const shareLinkEl = document.getElementById('shareLink');
+        const slotsOutEl = document.getElementById('slotsOut');
+        const btnSubmitEl = document.getElementById('btnSubmit');
+        const btnShareEl = document.getElementById('btnShare');
+        const btnSlotsEl = document.getElementById('btnSlots');
+
+        const slots = ['09:00', '11:00', '14:00'];
+
+        btnSubmitEl.onclick = function() {
+            const name = fullNameEl.value;
+            // 添加姓名非空校验
+            if (!name.trim()) {
+                msgEl.textContent = '请输入姓名';
+                return;
+            }
+            // 修复勾选校验逻辑，使用checked属性替代固定value
+            const ok = agreeEl.checked;
+            if (!ok) {
+                msgEl.textContent = '请先勾选须知';
+                return;
+            }
+            const token = Math.floor(Math.random() * 1e6);
+            // 修复XSS漏洞，使用安全的textContent替代innerHTML
+            msgEl.textContent = '预约成功，姓名：' + name + '，令牌：' + token;
+        };
+
+        btnShareEl.onclick = function() {
+            const city = cityEl.value;
+            const base = 'https://example.com/join?city=' + encodeURIComponent(city) + '&ref=demo';
+            shareLinkEl.textContent = base;
+            // 添加实际复制功能，使用Clipboard API
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(base).then(() => {
+                    alert('预约链接已复制到剪贴板');
+                }).catch(() => {
+                    alert('复制失败，请手动复制以上链接');
+                });
+            }
+        };
+
+        document.getElementById('btnSlots').onclick = function() {
+            slotsOutEl.innerHTML = '';
+            // 使用DocumentFragment批量更新DOM，减少重排
+            const fragment = document.createDocumentFragment();
+            // 修复数组遍历问题，使用entries()获取正确索引和值，替代会枚举原型属性的for-in
+            for (const [k, slot] of slots.entries()) {
+                const p = document.createElement('p');
+                p.textContent = '时段 ' + k + ': ' + slot;
+                fragment.appendChild(p);
+            }
+            slotsOutEl.appendChild(fragment);
+        };
+    </script>
+</body>
+</html>
