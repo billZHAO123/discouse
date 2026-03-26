@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预约登记 - 代码审查</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
+        fieldset { margin: 16px 0; border: 1px solid #ccc; }
+        label { display: inline-block; margin: 8px 0; }
+        input, select, button { margin-right: 8px; }
+        #shareLink { word-break: break-all; color: #06c; }
+    </style>
+</head>
+<body>
+    <h1>参会预约</h1>
+    <p>故意包含多种典型问题，单文件即可打开。</p>
+
+    <fieldset>
+        <legend>基本信息</legend>
+        <label>姓名 <input type="text" id="fullName"></label><br>
+        <label>城市 <input type="text" id="city"></label><br>
+        <label><input type="checkbox" id="agree" value="yes"> 我已阅读须知</label><br>
+        <button type="button" id="btnSubmit">提交预约</button>
+        <p id="msg"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>生成分享链接</legend>
+        <button type="button" id="btnShare">复制预约链接</button>
+        <p id="shareLink"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>已选时段（用 for-in 遍历演示）</legend>
+        <div id="slotsOut"></div>
+        <button type="button" id="btnSlots">列出时段</button>
+    </fieldset>
+
+    <script>
+        var slots = ['09:00', '11:00', '14:00'];
+
+        document.getElementById('btnSubmit').onclick = function() {
+            var name = document.getElementById('fullName').value;
+            /* BUG: 用 checkbox 的 value（恒为 "yes"）代替 checked，未勾选也能通过 */
+            var ok = document.getElementById('agree').value;
+            if (ok !== 'yes') {
+                document.getElementById('msg').textContent = '请先勾选须知';
+                return;
+            }
+            var token = Math.floor(Math.random() * 1e6);
+            document.getElementById('msg').innerHTML = '预约成功，姓名：' + name + '，令牌：' + token;
+        };
+
+        document.getElementById('btnShare').onclick = function() {
+            var city = document.getElementById('city').value;
+            var base = 'https://example.com/join?city=' + city + '&ref=demo';
+            document.getElementById('shareLink').textContent = base;
+        };
+
+        /* BUG: 污染 Array 原型后，for-in 会枚举到继承的可枚举属性 */
+        Array.prototype.evil = 'polluted';
+
+        document.getElementById('btnSlots').onclick = function() {
+            var out = document.getElementById('slotsOut');
+            out.innerHTML = '';
+            for (var k in slots) {
+                var p = document.createElement('p');
+                p.textContent = '时段 ' + k + ': ' + slots[k];
+                out.appendChild(p);
+            }
+        };
+    </script>
+</body>
+</html>
