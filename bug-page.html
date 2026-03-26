@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预约登记 - 代码审查</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
+        fieldset { margin: 16px 0; border: 1px solid #ccc; }
+        label { display: inline-block; margin: 8px 0; }
+        input, select, button { margin-right: 8px; }
+        #shareLink { word-break: break-all; color: #06c; }
+    </style>
+</head>
+<body>
+    <h1>参会预约</h1>
+    <p>故意包含多种典型问题，单文件即可打开。</p>
+
+    <fieldset>
+        <legend>基本信息</legend>
+        <label>姓名 <input type="text" id="fullName"></label><br>
+        <label>城市 <input type="text" id="city"></label><br>
+        <label><input type="checkbox" id="agree" value="yes"> 我已阅读须知</label><br>
+        <button type="button" id="btnSubmit">提交预约</button>
+        <p id="msg"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>生成分享链接</legend>
+        <button type="button" id="btnShare">复制预约链接</button>
+        <p id="shareLink"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>已选时段（用 for-in 遍历演示）</legend>
+        <div id="slotsOut"></div>
+        <button type="button" id="btnSlots">列出时段</button>
+    </fieldset>
+
+    <script>
+        (function() {
+            const slots = ['09:00', '11:00', '14:00'];
+
+            // 提前缓存DOM元素引用
+            const fullNameEl = document.getElementById('fullName');
+            const cityEl = document.getElementById('city');
+            const agreeEl = document.getElementById('agree');
+            const msgEl = document.getElementById('msg');
+            const shareLinkEl = document.getElementById('shareLink');
+            const slotsOutEl = document.getElementById('slotsOut');
+            const btnSubmitEl = document.getElementById('btnSubmit');
+            const btnShareEl = document.getElementById('btnShare');
+            const btnSlotsEl = document.getElementById('btnSlots');
+
+            // 提交预约事件
+            btnSubmitEl.addEventListener('click', function() {
+                const name = fullNameEl.value.trim();
+                const city = cityEl.value.trim();
+                const ok = agreeEl.checked;
+
+                // 添加非空校验
+                if (!name) {
+                    msgEl.textContent = '请填写姓名';
+                    return;
+                }
+                if (!city) {
+                    msgEl.textContent = '请填写城市';
+                    return;
+                }
+                if (!ok) {
+                    msgEl.textContent = '请先勾选须知';
+                    return;
+                }
+
+                const token = Math.floor(Math.random() * 1e6);
+                // 使用textContent代替innerHTML防止XSS
+                msgEl.textContent = '预约成功，姓名：' + name + '，令牌：' + token;
+            });
+
+            // 复制分享链接事件
+            btnShareEl.addEventListener('click', async function() {
+                const city = cityEl.value.trim();
+                const base = 'https://example.com/join?city=' + encodeURIComponent(city) + '&ref=demo';
+                shareLinkEl.textContent = base;
+
+                // 实现剪贴板复制功能，添加降级处理
+                if (!navigator.clipboard) {
+                    shareLinkEl.textContent += '\n（请手动复制以上链接）';
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(base);
+                    shareLinkEl.textContent += '\n✅ 链接已复制到剪贴板';
+                } catch (err) {
+                    shareLinkEl.textContent += '\n❌ 复制失败，请手动复制以上链接';
+                }
+            });
+
+            // 列出时段事件
+            btnSlotsEl.addEventListener('click', function() {
+                slotsOutEl.innerHTML = '';
+                const fragment = document.createDocumentFragment();
+                // 使用forEach遍历数组，避免for-in原型污染问题
+                slots.forEach((slot, index) => {
+                    const p = document.createElement('p');
+                    p.textContent = '时段 ' + index + ': ' + slot;
+                    fragment.appendChild(p);
+                });
+                // 一次性插入所有节点，减少重排
+                slotsOutEl.appendChild(fragment);
+            });
+        })();
+    </script>
+</body>
+</html>
