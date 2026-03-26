@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预约登记 - 代码审查</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
+        fieldset { margin: 16px 0; border: 1px solid #ccc; }
+        label { display: inline-block; margin: 8px 0; }
+        input, select, button { margin-right: 8px; }
+        #shareLink { word-break: break-all; color: #06c; }
+    </style>
+</head>
+<body>
+    <h1>参会预约</h1>
+    <p>故意包含多种典型问题，单文件即可打开。</p>
+
+    <fieldset>
+        <legend>基本信息</legend>
+        <label>姓名 <input type="text" id="fullName"></label><br>
+        <label>城市 <input type="text" id="city"></label><br>
+        <label><input type="checkbox" id="agree" value="yes"> 我已阅读须知</label><br>
+        <button type="button" id="btnSubmit">提交预约</button>
+        <p id="msg"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>生成分享链接</legend>
+        <button type="button" id="btnShare">复制预约链接</button>
+        <p id="shareLink"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>已选时段（用 for-in 遍历演示）</legend>
+        <div id="slotsOut"></div>
+        <button type="button" id="btnSlots">列出时段</button>
+    </fieldset>
+
+    <script>
+        // 缓存所有DOM元素引用
+        const fullNameEl = document.getElementById('fullName');
+        const cityEl = document.getElementById('city');
+        const agreeEl = document.getElementById('agree');
+        const msgEl = document.getElementById('msg');
+        const shareLinkEl = document.getElementById('shareLink');
+        const slotsOutEl = document.getElementById('slotsOut');
+        const btnSubmitEl = document.getElementById('btnSubmit');
+        const btnShareEl = document.getElementById('btnShare');
+        const btnSlotsEl = document.getElementById('btnSlots');
+
+        const slots = ['09:00', '11:00', '14:00'];
+
+        // 使用addEventListener绑定事件
+        btnSubmitEl.addEventListener('click', function() {
+            const name = fullNameEl.value.trim();
+            const city = cityEl.value.trim();
+
+            // 表单非空校验
+            if (!name) {
+                msgEl.textContent = '请输入姓名';
+                return;
+            }
+            if (!city) {
+                msgEl.textContent = '请输入城市';
+                return;
+            }
+
+            // 修复复选框校验：使用checked属性代替value
+            const isAgreed = agreeEl.checked;
+            if (!isAgreed) {
+                msgEl.textContent = '请先勾选须知';
+                return;
+            }
+
+            const token = Math.floor(Math.random() * 1e6);
+            // 修复XSS漏洞：使用textContent输出用户可控内容
+            msgEl.textContent = `预约成功，姓名：${name}，令牌：${token}`;
+        });
+
+        btnShareEl.addEventListener('click', async function() {
+            const city = cityEl.value.trim();
+            if (!city) {
+                shareLinkEl.textContent = '请先输入城市信息再生成链接';
+                return;
+            }
+
+            const base = `https://example.com/join?city=${encodeURIComponent(city)}&ref=demo`;
+            shareLinkEl.textContent = base;
+
+            // 实现实际复制功能，添加用户反馈
+            try {
+                await navigator.clipboard.writeText(base);
+                shareLinkEl.textContent += '\n(已复制到剪贴板)';
+            } catch (err) {
+                shareLinkEl.textContent += '\n(复制失败，请手动选中复制)';
+            }
+        });
+
+        // 删除了污染Array原型的代码
+
+        btnSlotsEl.addEventListener('click', function() {
+            slotsOutEl.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+
+            // 修复for-in遍历数组问题，改用for-of遍历
+            let index = 0;
+            for (const slot of slots) {
+                const p = document.createElement('p');
+                p.textContent = `时段 ${index}: ${slot}`;
+                fragment.appendChild(p);
+                index++;
+            }
+
+            // 使用DocumentFragment一次性插入DOM，减少重排
+            slotsOutEl.appendChild(fragment);
+        });
+    </script>
+</body>
+</html>
