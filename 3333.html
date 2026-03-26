@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>库存登记 - 审查用</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 520px; margin: 0 auto; }
+        .row { margin: 12px 0; }
+        label { display: block; font-size: 12px; color: #555; }
+        input, button { padding: 8px; margin-top: 4px; }
+        #log { border: 1px solid #ddd; min-height: 120px; padding: 10px; font-size: 13px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>库存登记</h1>
+    <p>单页演示，含故意问题，仅供代码审查练习。</p>
+
+    <div class="row">
+        <label>品名</label>
+        <input type="text" id="skuName" placeholder="例如：螺丝">
+    </div>
+    <div class="row">
+        <label>数量</label>
+        <input type="text" id="skuQty" placeholder="整数">
+    </div>
+    <button type="button" id="addSku">登记入库</button>
+    <button type="button" id="showTotal">显示库存合计</button>
+
+    <div class="row">
+        <label>操作日志</label>
+        <div id="log"></div>
+    </div>
+
+    <button type="button" id="autoSave">开启自动保存（每 5 秒）</button>
+
+    <script>
+        inventory = [];
+
+        document.getElementById('addSku').onclick = function() {
+            var name = document.getElementById('skuName').value;
+            var qty = document.getElementById('skuQty').value;
+            inventory.push({ name: name, qty: qty });
+            var log = document.getElementById('log');
+            log.innerHTML += '已登记：' + name + ' × ' + qty + '<br>';
+        };
+
+        document.getElementById('showTotal').onclick = function() {
+            var total = 0;
+            for (var i = 0; i < inventory.length; i++) {
+                total += inventory[i].qty;
+            }
+            document.getElementById('log').innerHTML += '<strong>合计：' + total + '</strong><br>';
+        };
+
+        document.getElementById('autoSave').onclick = function() {
+            setInterval(function() {
+                try {
+                    localStorage.setItem('inv', JSON.stringify(inventory));
+                } catch (e) {}
+            }, 5000);
+        };
+
+        (function restore() {
+            var raw = localStorage.getItem('inv');
+            var data = JSON.parse(raw);
+            if (data && data.length) inventory = data;
+        })();
+    </script>
+</body>
+</html>
