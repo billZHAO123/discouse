@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典 BUG 演示（可运行）</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 560px; margin: 0 auto; }
+        .box { border: 1px solid #ccc; padding: 16px; margin: 12px 0; border-radius: 8px; }
+        input, button { padding: 8px; margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <h1>经典 BUG 演示</h1>
+    <p>打开即用，修复了常见错误，供代码审查练习。</p>
+
+    <div class="box">
+        <h2>欢迎语（XSS 修复）</h2>
+        <input type="text" id="nameInput" placeholder="输入昵称">
+        <button type="button" id="greetBtn">生成欢迎</button>
+        <div id="greetOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>计算器（== 与类型 修复）</h2>
+        <input type="text" id="a" value="5">
+        <input type="text" id="b" value="3">
+        <button type="button" id="sumBtn">相加</button>
+        <div id="sumOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>安全表达式计算（eval 注入 修复）</h2>
+        <input type="text" id="expr" placeholder="输入数字表达式，如 2+3*4">
+        <button type="button" id="calcBtn">计算</button>
+        <div id="exprOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>列表数据</h2>
+        <button type="button" id="loadBtn">加载列表</button>
+        <ul id="listOut"></ul>
+    </div>
+
+    <div class="box">
+        <h2>定时提醒</h2>
+        <input type="text" id="remindText" placeholder="提醒内容（将显示在下方）">
+        <button type="button" id="startRemind">启动每 3 秒刷新提醒</button>
+        <div id="remindBanner" style="margin-top:8px;min-height:24px;"></div>
+    </div>
+
+    <div class="box">
+        <h2>排序（默认 sort 修复）</h2>
+        <button type="button" id="sortBtn">排序数字</button>
+        <div id="sortOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>分享链接（未编码 修复）</h2>
+        <input type="text" id="cityInput" placeholder="城市，可含 & 或 =">
+        <button type="button" id="linkBtn">生成链接</button>
+        <div id="linkOut" style="word-break:break-all;font-size:12px;"></div>
+    </div>
+
+    <div class="box">
+        <h2>快捷操作（闭包 修复）</h2>
+        <button type="button" class="quickOp">操作 0</button>
+        <button type="button" class="quickOp">操作 1</button>
+        <button type="button" class="quickOp">操作 2</button>
+        <div id="quickOut"></div>
+    </div>
+
+    <div class="box">
+        <h2>远程校验（Promise 修复）</h2>
+        <button type="button" id="fetchBtn">请求校验</button>
+        <div id="fetchOut"></div>
+    </div>
+
+    <script>
+        // 预获取DOM引用，避免重复查询
+        const greetBtn = document.getElementById('greetBtn');
+        const nameInput = document.getElementById('nameInput');
+        const greetOut = document.getElementById('greetOut');
+        const sumBtn = document.getElementById('sumBtn');
+        const aInput = document.getElementById('a');
+        const bInput = document.getElementById('b');
+        const sumOut = document.getElementById('sumOut');
+        const calcBtn = document.getElementById('calcBtn');
+        const exprInput = document.getElementById('expr');
+        const exprOut = document.getElementById('exprOut');
+        const loadBtn = document.getElementById('loadBtn');
+        const listOut = document.getElementById('listOut');
+        const startRemind = document.getElementById('startRemind');
+        const remindText = document.getElementById('remindText');
+        const remindBanner = document.getElementById('remindBanner');
+        const sortBtn = document.getElementById('sortBtn');
+        const sortOut = document.getElementById('sortOut');
+        const linkBtn = document.getElementById('linkBtn');
+        const cityInput = document.getElementById('cityInput');
+        const linkOut = document.getElementById('linkOut');
+        const quickBtns = document.getElementsByClassName('quickOp');
+        const quickOut = document.getElementById('quickOut');
+        const fetchBtn = document.getElementById('fetchBtn');
+        const fetchOut = document.getElementById('fetchOut');
+
+        // 欢迎语（XSS 修复）
+        greetBtn.onclick = function() {
+            const n = nameInput.value;
+            greetOut.innerHTML = '';
+            const p = document.createElement('p');
+            p.textContent = `你好，${n}！`;
+            greetOut.appendChild(p);
+        };
+
+        // 计算器（== 与类型 修复）
+        sumBtn.onclick = function() {
+            const aVal = aInput.value;
+            const bVal = bInput.value;
+            const a = Number(aVal);
+            const b = Number(bVal);
+            if (a === b) {
+                sumOut.textContent = '相等，不计算';
+            } else {
+                sumOut.textContent = `结果: ${a + b}`;
+            }
+        };
+
+        // 安全表达式计算（eval注入修复）：使用递归下降解析仅计算基础四则运算，彻底杜绝代码注入
+        calcBtn.onclick = function() {
+            const expr = exprInput.value.trim();
+            exprOut.textContent = '';
+            if (!expr) {
+                exprOut.textContent = '错误：请输入表达式';
+                return;
+            }
+
+            try {
+                // 仅保留允许的字符
+                const sanitized = expr.replace(/[^0-9+\-*/().\s]/g, '');
+                // 分词：拆分数字和运算符
+                const tokens = tokenize(sanitized);
+                const result = parseExpression(tokens);
+                if (tokens.length > 0) throw new Error('多余的字符');
+                exprOut.textContent = `结果: ${result}`;
+            } catch (e) {
+                exprOut.textContent = '错误：请输入合法的数字四则运算表达式';
+            }
+        };
+
+        // 分词工具
+        function tokenize(expr) {
+            const tokens = [];
+            let numBuf = '';
+            for (const c of expr) {
+                if (/\s/.test(c)) continue;
+                if (/[0-9.]/.test(c)) {
+                    numBuf += c;
+                } else if (/[+\-*/()']/.test(c)) {
+                    if (numBuf) {
+                        tokens.push(Number(numBuf));
+                        numBuf = '';
+                    }
+                    tokens.push(c);
+                } else {
+                    throw new Error('非法字符');
+                }
+            }
+            if (numBuf) {
+                tokens.push(Number(numBuf));
+            }
+            return tokens;
+        }
+
+        // 递归下降解析表达式，处理优先级：先乘除后加减
+        function parseExpression(tokens) {
+            let result = parseTerm(tokens);
+            while (tokens.length && ['+', '-'].includes(tokens[0])) {
+                const op = tokens.shift();
+                const term = parseTerm(tokens);
+                if (op === '+') result += term;
+                else result -= term;
+            }
+            return result;
+        }
+
+        function parseTerm(tokens) {
+            let result = parseFactor(tokens);
+            while (tokens.length && ['*', '/'].includes(tokens[0])) {
+                const op = tokens.shift();
+                const factor = parseFactor(tokens);
+                if (op === '*') result *= factor;
+                else result /= factor;
+            }
+            return result;
+        }
+
+        function parseFactor(tokens) {
+            if (!tokens.length) throw new Error('不完整的表达式');
+            const token = tokens.shift();
+            if (token === '(') {
+                const result = parseExpression(tokens);
+                if (!tokens.length || tokens.shift() !== ')') throw new Error('缺少右括号');
+                return result;
+            }
+            if (token === '-') {
+                return -parseFactor(tokens);
+            }
+            if (typeof token === 'number') {
+                return token;
+            }
+            throw new Error('语法错误');
+        }
+
+        // 列表数据：处理空值
+        const rows = [{ label: '项 A' }, null, { label: '项 C' }];
+        loadBtn.onclick = function() {
+            listOut.innerHTML = '';
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row) continue;
+                const li = document.createElement('li');
+                li.textContent = row.label;
+                listOut.appendChild(li);
+            }
+        };
+
+        // 移除吞掉所有错误的window.onerror，保留错误日志便于调试
+
+        // 定时提醒：抽离DOM逻辑，添加定时器清理
+        let remindTimer = null;
+        function updateRemindDOM(text) {
+            remindBanner.innerHTML = '';
+            const strong = document.createElement('strong');
+            strong.textContent = '提醒：';
+            remindBanner.appendChild(strong);
+            remindBanner.appendChild(document.createTextNode(text));
+        }
+
+        startRemind.onclick = function() {
+            const t = remindText.value;
+            if (remindTimer !== null) {
+                clearInterval(remindTimer);
+            }
+            remindTimer = setInterval(() => updateRemindDOM(t), 3000);
+            updateRemindDOM(t);
+        };
+
+        // 页面卸载时清理定时器
+        window.addEventListener('beforeunload', () => {
+            if (remindTimer !== null) {
+                clearInterval(remindTimer);
+            }
+        });
+
+        // 数字排序修复
+        const nums = [1, 10, 2, 20, 3];
+        sortBtn.onclick = function() {
+            const copy = nums.slice();
+            copy.sort((a, b) => a - b);
+            sortOut.textContent = copy.join(', ');
+        };
+
+        // URL参数编码修复
+        linkBtn.onclick = function() {
+            const city = cityInput.value;
+            linkOut.textContent =
+                `https://api.example.com/register?city=${encodeURIComponent(city)}&source=${encodeURIComponent('demo')}`;
+        };
+
+        // 闭包错误修复：使用let声明循环变量
+        for (let i = 0; i < quickBtns.length; i++) {
+            quickBtns[i].onclick = function() {
+                quickOut.textContent = `你点击了第 ${i} 个操作`;
+            };
+        }
+
+        // fetch添加错误处理
+        fetchBtn.onclick = function() {
+            fetchOut.textContent = '请求中...';
+            fetch('https://invalid-host-that-will-fail-xyz.example/no.json')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    fetchOut.textContent = JSON.stringify(data);
+                })
+                .catch(function(err) {
+                    fetchOut.textContent = `请求失败: ${err.message}`;
+                });
+        };
+    </script>
+</body>
+</html>
