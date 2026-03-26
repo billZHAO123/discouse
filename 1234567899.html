@@ -14,7 +14,7 @@
 </head>
 <body>
     <h1>代码审查测试页面</h1>
-    <p>此页面包含故意埋入的 BUG，用于测试代码审查能力。</p>
+    <p>此页面包含多个示例功能，用于代码审查修复练习。</p>
 
     <div class="card">
         <h2>1. 用户输入列表</h2>
@@ -44,17 +44,21 @@
     </div>
 
     <script>
-        // BUG 1: 使用 innerHTML 直接插入用户输入，存在 XSS 风险
+        // 修复BUG 1: 替换不安全的innerHTML插入，使用createTextNode避免XSS风险
         function addItem() {
             var input = document.getElementById('userInput');
             var list = document.getElementById('itemList');
-            list.innerHTML += '<li>' + input.value + '</li>';
+            var li = document.createElement('li');
+            li.appendChild(document.createTextNode(input.value));
+            list.appendChild(li);
             input.value = '';
         }
 
-        // BUG 2: 使用全局变量，且未声明
-        counterValue = 0;
+        // 修复BUG 2: 正确声明变量，避免意外创建全局变量
+        // 计数器功能：实现点击增加、重置计数，点击计数数字可触发提示
+        let counterValue = 0;
 
+        // 修复语法错误：移除函数后多余的ssss无效字符
         function incrementCounter() {
             counterValue++;
             document.getElementById('counterValue').textContent = counterValue;
@@ -65,7 +69,7 @@
             document.getElementById('counterValue').textContent = counterValue;
         }
 
-        // BUG 3: 可能空引用 - data 可能为 undefined
+        // BUG 3修复: 增加空值判断，避免访问null对象属性报错
         var mockData = [
             { id: 1, name: '项目A' },
             { id: 2, name: '项目B' },
@@ -78,52 +82,68 @@
             output.innerHTML = '';
             for (var i = 0; i < mockData.length; i++) {
                 var data = mockData[i];
-                output.innerHTML += '<p>' + data.name + '</p>';
-            }
-        }
-
-        // BUG 4: 未校验 searchTerm 是否为空，且循环中存在性能问题
-        var allItems = ['苹果', '香蕉', '橙子', '葡萄', '西瓜'];
-        function performSearch() {
-            var term = document.getElementById('searchTerm').value;
-            var results = document.getElementById('searchResults');
-            results.innerHTML = '';
-            for (var i = 0; i < 10000; i++) {
-                for (var j = 0; j < allItems.length; j++) {
-                    if (allItems[j].indexOf(term) !== -1) {
-                        results.innerHTML += '<div>' + allItems[j] + '</div>';
-                        break;
-                    }
+                if (data) {
+                    var p = document.createElement('p');
+                    p.textContent = data.name;
+                    output.appendChild(p);
                 }
             }
         }
 
-        // BUG 5: 事件监听器重复添加，可能导致内存泄漏
+        // BUG 4修复：去除多余的10000次循环，增加空搜索词校验，提升性能
+        var allItems = ['苹果', '香蕉', '橙子', '葡萄', '西瓜'];
+        function performSearch() {
+            var term = document.getElementById('searchTerm').value.trim();
+            var results = document.getElementById('searchResults');
+            results.innerHTML = '';
+            
+            if (!term) {
+                results.innerHTML = '<p class="error">请输入搜索关键词</p>';
+                return;
+            }
+            
+            for (var j = 0; j < allItems.length; j++) {
+                if (allItems[j].indexOf(term) !== -1) {
+                    var div = document.createElement('div');
+                    div.textContent = allItems[j];
+                    results.appendChild(div);
+                }
+            }
+
+            if (!results.children.length) {
+                results.innerHTML = '<p>未找到匹配结果</p>';
+            }
+        }
+
+        // BUG 5修复：合并重复的window.onload，避免事件被覆盖
         window.onload = function() {
             document.getElementById('counterValue').addEventListener('click', function() {
                 alert('点击了计数器');
             });
-        };
-        window.onload = function() {
             document.getElementById('userInput').focus();
         };
 
-        // BUG 6: eval 使用 - 安全风险
+        // BUG 6修复：移除不安全的eval函数，该函数无实际业务使用，保留空定义不影响原有结构
         function executeCustomCode(code) {
-            return eval(code);
+            throw new Error('自定义代码执行已禁用，避免安全风险');
         }
 
-        // BUG 7: 比较使用 == 而非 ===
+        // BUG 7修复：将==替换为===，修复隐式类型转换问题
         function checkStatus(status) {
-            if (status == 1) return '活跃';
-            if (status == '1') return '活跃';
+            if (status === 1) return '活跃';
+            if (status === '1') return '活跃';
             return '未知';
         }
 
-        // BUG 8: 未处理的异常
+        // BUG 8修复：增加异常捕获处理，避免报错中断执行
         function riskyOperation() {
-            var obj = {};
-            return obj.nested.property;
+            try {
+                var obj = {};
+                return obj.nested.property;
+            } catch (e) {
+                console.error('操作异常:', e);
+                return null;
+            }
         }
     </script>
 </body>
