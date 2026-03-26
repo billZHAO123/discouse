@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典 BUG 演示（可运行）</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 560px; margin: 0 auto; }
+        .box { border: 1px solid #ccc; padding: 16px; margin: 12px 0; border-radius: 8px; }
+        input, button { padding: 8px; margin: 4px 0; }
+        #copyBtn { margin-left: 8px; }
+    </style>
+</head>
+<body>
+    <h1>经典 BUG 演示</h1>
+    <p>打开即用，故意埋入常见错误，供代码审查练习。本页面为代码评审练习场景，以下功能故意保留已知BUG用于练习识别修复。</p>
+
+    <div class="box" role="region" aria-labelledby="greet-title">
+        <h2 id="greet-title">欢迎语（XSS 演示）</h2>
+        <input type="text" id="nameInput" placeholder="输入昵称" aria-label="昵称输入框">
+        <button type="button" id="greetBtn" aria-label="生成欢迎语">生成欢迎</button>
+        <div id="greetOut"></div>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：用户输入直接注入innerHTML，存在XSS安全漏洞</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="sum-title">
+        <h2 id="sum-title">计算器（== 与类型 演示）</h2>
+        <input type="number" id="a" value="5" aria-label="第一个数字">
+        <input type="number" id="b" value="3" aria-label="第二个数字">
+        <button type="button" id="sumBtn" aria-label="计算两数之和">相加</button>
+        <div id="sumOut"></div>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：未转数字类型，错误使用相等判断，会产生字符串拼接结果</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="eval-title">
+        <h2 id="eval-title">脚本执行（代码注入 演示）</h2>
+        <input type="text" id="expr" placeholder="输入表达式" aria-label="表达式输入框">
+        <button type="button" id="evalBtn" aria-label="计算表达式">计算</button>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：直接使用eval执行用户输入，存在任意代码执行安全漏洞</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="list-title">
+        <h2 id="list-title">列表数据（空值处理 演示）</h2>
+        <button type="button" id="loadBtn" aria-label="加载列表数据">加载列表</button>
+        <ul id="listOut"></ul>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：未做空值校验，直接访问null对象的属性会抛出错误</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="remind-title">
+        <h2 id="remind-title">定时提醒（内存泄漏/作用域 演示）</h2>
+        <input type="text" id="remindText" placeholder="提醒内容（将显示在下方）" aria-label="提醒内容输入框">
+        <button type="button" id="startRemind" aria-label="启动定时提醒">启动每 3 秒刷新提醒</button>
+        <div id="remindBanner" style="margin-top:8px;min-height:24px;"></div>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：多次点击会叠加多个定时器，未清理旧定时器，存在内存泄漏；且用户输入直接注入innerHTML存在XSS</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="sort-title">
+        <h2 id="sort-title">排序（默认 sort 演示）</h2>
+        <button type="button" id="sortBtn" aria-label="对数字排序">排序数字</button>
+        <div id="sortOut"></div>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：Array.sort默认按字符编码排序，数字排序结果不符合预期</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="link-title">
+        <h2 id="link-title">分享链接（未编码 演示）</h2>
+        <input type="text" id="cityInput" placeholder="城市，可含 & 或 =" aria-label="城市名称输入框">
+        <button type="button" id="linkBtn" aria-label="生成分享链接">生成链接</button>
+        <button type="button" id="copyBtn" aria-label="复制链接到剪贴板">复制链接</button>
+        <div id="linkOut" style="word-break:break-all;font-size:12px;margin-top:8px;"></div>
+        <div id="copyMsg" style="font-size:12px;color:#666;margin-top:4px;"></div>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：URL参数未编码，特殊字符会破坏URL结构</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="quick-title">
+        <h2 id="quick-title">快捷操作（闭包 演示）</h2>
+        <button type="button" class="quickOp" aria-label="操作0">操作 0</button>
+        <button type="button" class="quickOp" aria-label="操作1">操作 1</button>
+        <button type="button" class="quickOp" aria-label="操作2">操作 2</button>
+        <div id="quickOut"></div>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：for循环使用var声明变量，所有点击都引用最终值</p>
+    </div>
+
+    <div class="box" role="region" aria-labelledby="fetch-title">
+        <h2 id="fetch-title">远程校验（Promise 错误处理 演示）</h2>
+        <button type="button" id="fetchBtn" aria-label="发起远程校验请求">请求校验</button>
+        <div id="fetchOut"></div>
+        <p style="color: #666; font-size: 12px;">⚠️ 故意保留：fetch请求未添加catch，请求失败会导致未处理的Promise拒绝</p>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+            // 缓存DOM引用（仅初始化时查询一次，演示场景简化未做空检查，正式代码需添加非空判断避免DOM不存在导致报错）
+            const nameInput = document.getElementById('nameInput');
+            const greetBtn = document.getElementById('greetBtn');
+            const greetOut = document.getElementById('greetOut');
+            const aInput = document.getElementById('a');
+            const bInput = document.getElementById('b');
+            const sumBtn = document.getElementById('sumBtn');
+            const sumOut = document.getElementById('sumOut');
+            const exprInput = document.getElementById('expr');
+            const evalBtn = document.getElementById('evalBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const listOut = document.getElementById('listOut');
+            const remindText = document.getElementById('remindText');
+            const startRemindBtn = document.getElementById('startRemind');
+            const remindBanner = document.getElementById('remindBanner');
+            const sortBtn = document.getElementById('sortBtn');
+            const sortOut = document.getElementById('sortOut');
+            const cityInput = document.getElementById('cityInput');
+            const linkBtn = document.getElementById('linkBtn');
+            const linkOut = document.getElementById('linkOut');
+            const copyBtn = document.getElementById('copyBtn');
+            const copyMsg = document.getElementById('copyMsg');
+            const quickBtns = document.getElementsByClassName('quickOp');
+            const quickOut = document.getElementById('quickOut');
+            const fetchBtn = document.getElementById('fetchBtn');
+            const fetchOut = document.getElementById('fetchOut');
+
+            /* 演示BUG 1: innerHTML + 用户输入 → XSS，故意保留 */
+            greetBtn.addEventListener('click', function() {
+                const n = nameInput.value;
+                greetOut.innerHTML = '<p>你好，' + n + '！</p>';
+            });
+
+            /* 演示BUG 2: == 导致字符串拼接而非数字相加，故意保留 */
+            sumBtn.addEventListener('click', function() {
+                const a = aInput.value;
+                const b = bInput.value;
+                if (a == b) {
+                    sumOut.textContent = '相等，不计算';
+                } else {
+                    sumOut.textContent = '结果: ' + (a + b);
+                }
+            });
+
+            /* 演示BUG 3: eval 执行任意字符串，故意保留 */
+            evalBtn.addEventListener('click', function() {
+                const e = exprInput.value;
+                alert('结果: ' + eval(e));
+            });
+
+            /* 演示BUG 4: 数组含 null，直接访问属性，故意保留 */
+            const rows = [{ label: '项 A' }, null, { label: '项 C' }];
+            loadBtn.addEventListener('click', function() {
+                listOut.innerHTML = '';
+                const fragment = document.createDocumentFragment();
+                for (let i = 0; i < rows.length; i++) {
+                    const li = document.createElement('li');
+                    li.textContent = rows[i].label;
+                    fragment.appendChild(li);
+                }
+                listOut.appendChild(fragment);
+            });
+
+            /* 原BUG 5: 全局 onerror 吞掉错误，调试困难 → 已删除该行错误代码 */
+
+            /* 演示BUG 6: setInterval 未 clear，多次叠加；BUG 7: innerHTML + 用户输入，故意保留 */
+            startRemindBtn.addEventListener('click', function() {
+                const t = remindText.value;
+                // ⚠️ 故意保留BUG：未保存定时器ID，无法清理旧定时器，多次点击会叠加多个定时器造成内存泄漏
+                setInterval(function() {
+                    remindBanner.innerHTML = '<strong>提醒：</strong>' + t;
+                }, 3000);
+            });
+
+            /* 演示BUG 8: Array.sort 默认按字符串排，[1,10,2] 顺序错误，故意保留 */
+            const nums = [1, 10, 2, 20, 3];
+            sortBtn.addEventListener('click', function() {
+                const copy = nums.slice();
+                copy.sort();
+                sortOut.textContent = copy.join(', ');
+            });
+
+            /* 演示BUG 9: URL 查询参数未 encodeURIComponent，& 会破坏参数，故意保留 */
+            linkBtn.addEventListener('click', function() {
+                const city = cityInput.value;
+                linkOut.textContent =
+                    'https://api.example.com/register?city=' + city + '&source=demo';
+            });
+
+            // 添加复制链接功能
+            copyBtn.addEventListener('click', function() {
+                const link = linkOut.textContent;
+                if (!link) {
+                    copyMsg.textContent = '请先生成链接';
+                    return;
+                }
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(link).then(() => {
+                        copyMsg.textContent = '复制成功！';
+                        setTimeout(() => copyMsg.textContent = '', 2000);
+                    }).catch(() => {
+                        copyMsg.textContent = '复制失败，请手动复制下方链接';
+                        // 复制失败时自动选中文本，方便用户手动复制
+                        const range = document.createRange();
+                        range.selectNodeContents(linkOut);
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    });
+                } else {
+                    // 降级兼容方案
+                    const tempInput = document.createElement('input');
+                    tempInput.value = link;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    copyMsg.textContent = '复制成功！';
+                    setTimeout(() => copyMsg.textContent = '', 2000);
+                }
+            });
+
+            /* ⚠️ 故意保留闭包演示BUG：for + var声明循环变量，所有点击都引用最终值 */
+            for (var i = 0; i < quickBtns.length; i++) {
+                quickBtns[i].addEventListener('click', function() {
+                    quickOut.textContent = '你点击了第 ' + i + ' 个操作';
+                });
+            }
+
+            /* 演示BUG 11: fetch 无 catch，失败时未处理且控制台可能报未处理拒绝 → 已修复错误处理 */
+            fetchBtn.addEventListener('click', function() {
+                fetch('https://invalid-host-that-will-fail-xyz.example/no.json')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        fetchOut.textContent = JSON.stringify(data);
+                    })
+                    .catch(function(err) {
+                        fetchOut.textContent = '请求失败: ' + err.message;
+                    });
+            });
+        })();
+    </script>
+</body>
+</html>
