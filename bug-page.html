@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预约登记 - 代码审查</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
+        fieldset { margin: 16px 0; border: 1px solid #ccc; }
+        label { display: inline-block; margin: 8px 0; }
+        input, select, button { margin-right: 8px; }
+        #shareLink { word-break: break-all; color: #06c; }
+    </style>
+</head>
+<body>
+    <h1>参会预约</h1>
+    <p>故意包含多种典型问题，单文件即可打开。</p>
+
+    <fieldset>
+        <legend>基本信息</legend>
+        <label>姓名 <input type="text" id="fullName"></label><br>
+        <label>城市 <input type="text" id="city"></label><br>
+        <label><input type="checkbox" id="agree" value="yes"> 我已阅读须知</label><br>
+        <button type="button" id="btnSubmit">提交预约</button>
+        <p id="msg"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>生成分享链接</legend>
+        <button type="button" id="btnShare">复制预约链接</button>
+        <p id="shareLink"></p>
+    </fieldset>
+
+    <fieldset>
+        <legend>已选时段（用 for-in 遍历演示）</legend>
+        <div id="slotsOut"></div>
+        <button type="button" id="btnSlots">列出时段</button>
+    </fieldset>
+
+    <script>
+        const slots = ['09:00', '11:00', '14:00'];
+
+        // 缓存DOM引用减少重复查询
+        const fullNameEl = document.getElementById('fullName');
+        const cityEl = document.getElementById('city');
+        const agreeEl = document.getElementById('agree');
+        const msgEl = document.getElementById('msg');
+        const shareLinkEl = document.getElementById('shareLink');
+        const slotsOutEl = document.getElementById('slotsOut');
+        const btnSubmitEl = document.getElementById('btnSubmit');
+        const btnShareEl = document.getElementById('btnShare');
+        const btnSlotsEl = document.getElementById('btnSlots');
+
+        // HTML转义工具函数，防止XSS
+        function escapeHtml(str) {
+            if (!str) return str;
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // 原问题演示：保留原演示意图，改为不污染原型的方式，使用own属性判断
+        const extraSlotsProperty = { evil: 'polluted' };
+        Object.assign(slots, extraSlotsProperty);
+
+        function handleSubmit() {
+            // 非空DOM检查
+            if (!fullNameEl || !agreeEl || !msgEl) return;
+
+            const name = fullNameEl.value;
+            // 修复：正确获取checkbox勾选状态，替代错误的value判断
+            const ok = agreeEl.checked;
+            if (!ok) {
+                msgEl.textContent = '请先勾选须知';
+                return;
+            }
+            const token = Math.floor(Math.random() * 1e6);
+            // 修复：XSS漏洞，对用户输入做转义后再插入
+            msgEl.innerHTML = `预约成功，姓名：${escapeHtml(name)}，令牌：${token}`;
+        }
+
+        function handleShare() {
+            if (!cityEl || !shareLinkEl) return;
+            const city = cityEl.value;
+            // 修复：URL编码问题，对参数做正确编码
+            const base = `https://example.com/join?city=${encodeURIComponent(city)}&ref=demo`;
+            shareLinkEl.textContent = base;
+        }
+
+        function handleListSlots() {
+            if (!slotsOutEl) return;
+            slotsOutEl.innerHTML = '';
+            // 修复：for-in遍历时只遍历自身属性，避免继承属性错误输出
+            for (const k in slots) {
+                if (slots.hasOwnProperty(k)) {
+                    const p = document.createElement('p');
+                    p.textContent = `时段 ${k}: ${slots[k]}`;
+                    slotsOutEl.appendChild(p);
+                }
+            }
+        }
+
+        // 修复：使用现代事件绑定方式addEventListener替代onclick直接绑定
+        btnSubmitEl?.addEventListener('click', handleSubmit);
+        btnShareEl?.addEventListener('click', handleShare);
+        btnSlotsEl?.addEventListener('click', handleListSlots);
+    </script>
+</body>
+</html>
