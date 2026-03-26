@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>库存登记 - 审查用</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 520px; margin: 0 auto; }
+        .row { margin: 12px 0; }
+        label { display: block; font-size: 12px; color: #555; }
+        input, button { padding: 8px; margin-top: 4px; }
+        #log { border: 1px solid #ddd; min-height: 120px; padding: 10px; font-size: 13px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>库存登记</h1>
+    <p>单页演示，含故意问题，仅供代码审查练习。</p>
+
+    <div class="row">
+        <label>品名</label>
+        <input type="text" id="skuName" placeholder="例如：螺丝">
+    </div>
+    <div class="row">
+        <label>数量</label>
+        <input type="text" id="skuQty" placeholder="整数">
+    </div>
+    <button type="button" id="addSku">登记入库</button>
+    <button type="button" id="showTotal">显示库存合计</button>
+
+    <div class="row">
+        <label>操作日志</label>
+        <div id="log"></div>
+    </div>
+
+    <button type="button" id="autoSave">开启自动保存（每 5 秒）</button>
+
+    <script>
+        // 全局库存数组，声明为const避免意外修改
+        const inventory = [];
+        // 保存自动保存定时器ID
+        let autoSaveTimer = null;
+        // 获取日志DOM元素，缓存减少重复DOM查询
+        const logElement = document.getElementById('log');
+
+        // HTML转义函数，防止XSS攻击
+        function escapeHtml(str) {
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        // 添加日志方法，统一处理，避免重复innerHTML解析
+        function addLog(content, isBold = false) {
+            const logLine = document.createElement('div');
+            if (isBold) {
+                const strong = document.createElement('strong');
+                strong.textContent = content;
+                logLine.appendChild(strong);
+            } else {
+                logLine.textContent = content;
+            }
+            logElement.appendChild(logLine);
+            // 滚动到底部，方便查看最新日志
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // 登记入库点击事件
+        document.getElementById('addSku').addEventListener('click', function() {
+            const nameInput = document.getElementById('skuName');
+            const qtyInput = document.getElementById('skuQty');
+            const name = nameInput.value.trim();
+            const qtyRaw = qtyInput.value.trim();
+
+            // 输入校验：非空+合法性检查
+            if (!name) {
+                addLog('错误：品名不能为空', true);
+                nameInput.focus();
+                return;
+            }
+            const qty = Number(qtyRaw);
+            if (!Number.isInteger(qty) || qty <= 0) {
+                addLog('错误：数量必须是正整数', true);
+                qtyInput.focus();
+                return;
+            }
+
+            // 保存库存数据
+            inventory.push({ name: name, qty: qty });
+            addLog(`已登记：${escapeHtml(name)} × ${qty}`);
+
+            // 清空输入框方便下次输入
+            nameInput.value = '';
+            qtyInput.value = '';
+            nameInput.focus();
+        });
+
+        // 显示库存合计点击事件
+        document.getElementById('showTotal').addEventListener('click', function() {
+            let total = 0;
+            for (let i = 0; i < inventory.length; i++) {
+                total += inventory[i].qty;
+            }
+            addLog(`合计：${total}`, true);
+        });
+
+        // 开启自动保存点击事件
+        document.getElementById('autoSave').addEventListener('click', function() {
+            // 先清除已存在的定时器，避免多个定时器重复执行
+            if (autoSaveTimer) {
+                clearInterval(autoSaveTimer);
+            }
+            // 创建新定时器，每5秒保存一次
+            autoSaveTimer = setInterval(function() {
+                try {
+                    localStorage.setItem('inv', JSON.stringify(inventory));
+                    addLog('自动保存成功', true);
+                } catch (e) {
+                    addLog(`自动保存失败：${e.message}`, true);
+                }
+            }, 5000);
+            addLog('已开启自动保存', true);
+            this.disabled = true;
+        });
+
+        // 页面加载时恢复本地存储数据
+        (function restore() {
+            try {
+                const raw = localStorage.getItem('inv');
+                // 空值判断，避免JSON.parse(null)出错
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                // 验证数据格式正确后再恢复
+                if (Array.isArray(data) && data.length) {
+                    // 保证恢复数据中数量都是数值类型
+                    inventory.push(...data.map(item => ({
+                        name: item.name,
+                        qty: Number(item.qty) || 0
+                    })));
+                    addLog(`已恢复${inventory.length}条历史库存数据`, true);
+                }
+            } catch (e) {
+                addLog(`恢复历史数据失败：${e.message}`, true);
+            }
+        })();
+    </script>
+</body>
+</html>
