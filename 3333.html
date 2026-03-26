@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>库存登记 - 审查用</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 520px; margin: 0 auto; }
+        .row { margin: 12px 0; }
+        label { display: block; font-size: 12px; color: #555; }
+        input, button { padding: 8px; margin-top: 4px; }
+        button:disabled { background-color: #eee; color: #999; cursor: not-allowed; }
+        #log { border: 1px solid #ddd; min-height: 120px; padding: 10px; font-size: 13px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>库存登记</h1>
+    <p>单页演示，含故意问题，仅供代码审查练习。</p>
+
+    <div class="row">
+        <label>品名</label>
+        <input type="text" id="skuName" placeholder="例如：螺丝">
+    </div>
+    <div class="row">
+        <label>数量</label>
+        <input type="number" id="skuQty" placeholder="正整数" min="1">
+    </div>
+    <button type="button" id="addSku">登记入库</button>
+    <button type="button" id="showTotal">显示库存合计</button>
+
+    <div class="row">
+        <label>操作日志</label>
+        <div id="log"></div>
+    </div>
+
+    <button type="button" id="autoSave">开启自动保存（每 5 秒）</button>
+
+    <script>
+        // 初始化库存数组，使用const声明避免全局污染
+        const inventory = [];
+        // 自动保存定时器标识，用于防重复创建
+        let autoSaveTimer = null;
+        // 日志容器DOM元素缓存
+        const logContainer = document.getElementById('log');
+
+        /**
+         * 安全添加日志，避免XSS，使用createElement方式添加
+         * @param {string} content 日志内容
+         * @param {boolean} isStrong 是否加粗显示
+         */
+        function addLog(content, isStrong = false) {
+            const line = document.createElement(isStrong ? 'strong' : 'div');
+            line.textContent = content;
+            logContainer.appendChild(line);
+            // 自动滚动到底部，提升体验
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 登记入库按钮点击事件
+        document.getElementById('addSku').addEventListener('click', function() {
+            const nameInput = document.getElementById('skuName');
+            const qtyInput = document.getElementById('skuQty');
+            const name = nameInput.value.trim();
+            const qtyRaw = qtyInput.value.trim();
+
+            // 输入校验：品名不能为空
+            if (!name) {
+                addLog('错误：品名不能为空');
+                return;
+            }
+
+            // 输入校验：数量必须是正整数
+            const qty = parseInt(qtyRaw, 10);
+            if (isNaN(qty) || qty <= 0 || !Number.isInteger(qty)) {
+                addLog('错误：数量必须是正整数');
+                return;
+            }
+
+            // 添加到库存数组
+            inventory.push({ name, qty });
+            addLog(`已登记：${name} × ${qty}`);
+            
+            // 清空输入框，方便下次输入
+            nameInput.value = '';
+            qtyInput.value = '';
+        });
+
+        // 显示库存合计按钮点击事件
+        document.getElementById('showTotal').addEventListener('click', function() {
+            let total = 0;
+            for (let i = 0; i < inventory.length; i++) {
+                // 累加数值类型的数量，避免字符串拼接
+                total += inventory[i].qty;
+            }
+            addLog(`合计：${total}`, true);
+        });
+
+        // 自动保存按钮点击事件
+        document.getElementById('autoSave').addEventListener('click', function() {
+            const btn = this;
+            // 防止重复创建定时器
+            if (autoSaveTimer !== null) {
+                addLog('自动保存已经开启，无需重复操作');
+                return;
+            }
+
+            // 创建定时器
+            autoSaveTimer = setInterval(function() {
+                try {
+                    localStorage.setItem('inv', JSON.stringify(inventory));
+                } catch (e) {
+                    addLog(`自动保存失败：${e.message}`);
+                }
+            }, 5000);
+
+            // 更新按钮状态，提供反馈
+            btn.textContent = '自动保存已开启';
+            btn.disabled = true;
+            addLog('已开启自动保存，每5秒自动存储库存数据');
+        });
+
+        /**
+         * 页面加载时从localStorage恢复库存数据
+         */
+        (function restore() {
+            const raw = localStorage.getItem('inv');
+            // 处理空值，避免JSON.parse抛出错误
+            if (raw === null) return;
+            
+            try {
+                const data = JSON.parse(raw);
+                if (data && Array.isArray(data) && data.length) {
+                    // 恢复数据后同步日志
+                    inventory.splice(0, inventory.length, ...data);
+                    addLog(`已从本地存储恢复${data.length}条库存记录`);
+                }
+            } catch (e) {
+                addLog(`恢复存储数据失败：${e.message}`);
+            }
+        })();
+    </script>
+</body>
+</html>
