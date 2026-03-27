@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>审查练习 · 另一套典型问题</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 540px; margin: 0 auto; }
+        .box { border: 1px solid #aaa; padding: 14px; margin: 12px 0; border-radius: 6px; }
+        input, button { padding: 6px; margin: 4px 0; }
+        .warn { color: #c00; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>另一套 BUG 演示</h1>
+    <p class="warn">与 <code>buggy-classic-demo.html</code> 中的题型刻意错开，单页可运行。</p>
+
+    <div class="box">
+        <h2>同意条款</h2>
+        <label><input type="checkbox" id="terms" value="yes"> 我已阅读</label>
+        <button type="button" id="btnRegister">注册</button>
+        <p id="regMsg"></p>
+    </div>
+
+    <div class="box">
+        <h2>编号规范化</h2>
+        <input type="text" id="codeIn" placeholder="输入编号，例如 08">
+        <button type="button" id="btnCode">转成整数</button>
+        <p id="codeOut"></p>
+    </div>
+
+    <div class="box">
+        <h2>本地缓存读取</h2>
+        <button type="button" id="btnCache">读取 draft 并展示</button>
+        <pre id="cacheOut"></pre>
+    </div>
+
+    <div class="box">
+        <h2>延迟刷新（字符串回调）</h2>
+        <button type="button" id="btnDelay">3 秒后更新下方文字</button>
+        <div id="delayOut">等待中…</div>
+    </div>
+
+    <div class="box">
+        <h2>库存显示</h2>
+        <button type="button" id="btnStock">显示库存</button>
+        <p id="stockOut"></p>
+    </div>
+
+    <div class="box">
+        <h2>文本校验（正则性能）</h2>
+        <input type="text" id="reIn" placeholder="仅测 a/b/c…">
+        <button type="button" id="btnRe">校验是否全为 a</button>
+        <p id="reOut"></p>
+    </div>
+
+    <form class="box" id="fakeForm">
+        <h2>提交表单</h2>
+        <input name="note" value="备注">
+        <button type="submit" id="btnSubmit">提交（会整页刷新）</button>
+    </form>
+
+    <script>
+        /* A: 用 checkbox 的 value 判断勾选，value 恒为 yes，未勾选也能「通过」 */
+        document.getElementById('btnRegister').onclick = function() {
+            if (document.getElementById('terms').value !== 'yes') {
+                document.getElementById('regMsg').textContent = '请先勾选';
+                return;
+            }
+            document.getElementById('regMsg').textContent = '注册成功';
+        };
+
+        /* B: parseInt 未指定进制，与 0 开头或部分浏览器表现易混 */
+        document.getElementById('btnCode').onclick = function() {
+            var raw = document.getElementById('codeIn').value;
+            document.getElementById('codeOut').textContent = '整数: ' + parseInt(raw);
+        };
+
+        /* C: JSON.parse 裸调，localStorage 内容损坏时直接抛错中断后续脚本 */
+        document.getElementById('btnCache').onclick = function() {
+            var raw = localStorage.getItem('draft');
+            document.getElementById('cacheOut').textContent = JSON.stringify(JSON.parse(raw));
+        };
+
+        /* D: setTimeout 首参为字符串，相当于 eval，有注入面 */
+        document.getElementById('btnDelay').onclick = function() {
+            setTimeout("document.getElementById('delayOut').textContent = '已更新'", 3000);
+        };
+
+        /* E: 0 为合法库存，但用 truthy 判断会变成「无货」 */
+        var stockQty = 0;
+        document.getElementById('btnStock').onclick = function() {
+            document.getElementById('stockOut').textContent =
+                stockQty ? ('当前库存: ' + stockQty) : '无库存（误：0 被当成假）';
+        };
+
+        /* F: 灾难性回溯正则，长串 a 可导致长时间卡死 */
+        document.getElementById('btnRe').onclick = function() {
+            var s = document.getElementById('reIn').value;
+            var ok = /^(a+)+$/.test(s);
+            document.getElementById('reOut').textContent = ok ? '通过' : '不通过';
+        };
+
+        /* G: submit 未 preventDefault，页面刷新，状态丢失 */
+        document.getElementById('fakeForm').onsubmit = function() {
+            alert('已记录备注');
+        };
+
+        /* H: 两个元素使用相同 id，getElementById 只取第一个，第二个逻辑易错（本页仅示例 DOM 非法） */
+        /* 若需要可在审查时指出：HTML 中 id 应唯一 */
+    </script>
+    <input type="hidden" id="dupId" value="first">
+    <span id="dupId" style="display:none">second</span>
+</body>
+</html>
