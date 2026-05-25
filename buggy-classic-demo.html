@@ -76,10 +76,10 @@
     </div>
 
     <script>
-        /* BUG 1: innerHTML + 用户输入 → XSS */
+        /* BUG 1 已修复: 使用 textContent 避免 XSS */
         document.getElementById('greetBtn').onclick = function() {
             var n = document.getElementById('nameInput').value;
-            document.getElementById('greetOut').innerHTML = '<p>你好，' + n + '！</p>';
+            document.getElementById('greetOut').textContent = '你好，' + n + '！';
         };
 
         /* BUG 2: == 导致字符串拼接而非数字相加 */
